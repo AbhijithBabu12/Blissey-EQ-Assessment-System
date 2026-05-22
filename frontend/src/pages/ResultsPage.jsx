@@ -219,7 +219,8 @@ export default function ResultsPage() {
       <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
         <button 
           onClick={() => {
-            window.open(`http://localhost:8000/api/assessment/${id}/report/`, '_blank');
+            const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            window.open(`${baseUrl}/api/assessment/${id}/report/`, '_blank');
           }} 
           className="btn-primary"
         >

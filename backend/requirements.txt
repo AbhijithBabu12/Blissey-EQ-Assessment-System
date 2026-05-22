@@ -11,8 +11,10 @@ transformers>=4.40
 torch>=2.2
 sentencepiece>=0.2
 
-# PDF Reports (Phase 8)
-# weasyprint>=62.0
+# PDF Reports & Deployment
+reportlab>=4.0
+gunicorn>=21.0
+whitenoise>=6.0
 
 # Utilities
 python-dotenv>=1.0

@@ -200,43 +200,59 @@ def get_results(request, assessment_id):
     return Response(serializer.data)
 
 
-from django.template.loader import render_to_string
 from django.http import HttpResponse
 from datetime import datetime
-from xhtml2pdf import pisa
 import io
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
 
 @api_view(["GET"])
 def get_report(request, assessment_id):
-    """Download a PDF report using xhtml2pdf."""
+    """Download a PDF report using reportlab."""
     assessment = get_object_or_404(UserAssessment, id=assessment_id)
     if not assessment.is_completed:
         return Response({"error": "Assessment is not completed yet."}, status=status.HTTP_400_BAD_REQUEST)
         
     result = assessment.result
     
-    # Render the HTML template with the assessment data
-    html_string = render_to_string('report.html', {
-        'assessment': assessment,
-        'result': result,
-        'date_generated': datetime.now().strftime("%B %d, %Y")
-    })
-    
     try:
-        # Create a file-like buffer to receive PDF data
         buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
         
-        # Convert HTML to PDF using xhtml2pdf
-        pisa_status = pisa.CreatePDF(
-            html_string, 
-            dest=buffer
-        )
+        # Header
+        c.setFont("Helvetica-Bold", 24)
+        c.drawString(50, height - 50, "Blissey EQ Assessment Report")
         
-        if pisa_status.err:
-            return Response({"error": "PDF Generation failed with pisa error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        c.setFont("Helvetica", 12)
+        c.drawString(50, height - 80, f"Name: {assessment.name}")
+        c.drawString(50, height - 100, f"Profession: {assessment.profession}")
+        c.drawString(50, height - 120, f"Date: {datetime.now().strftime('%B %d, %Y')}")
         
-        # Return as a downloadable file
-        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        # Score
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, height - 160, f"Overall EQ Score: {result.overall_eq_score} / 100")
+        c.drawString(50, height - 180, f"Level: {assessment.eq_level.replace('_', ' ').title()}")
+        
+        # Summary
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(50, height - 220, "AI Analysis Summary:")
+        c.setFont("Helvetica", 11)
+        
+        # Simple text wrapping
+        text = result.feedback_text
+        textobject = c.beginText(50, height - 240)
+        textobject.setFont("Helvetica", 11)
+        for line in text.split('. '):
+            textobject.textLine(line + '.')
+        c.drawText(textobject)
+        
+        c.showPage()
+        c.save()
+        
+        buffer.seek(0)
+        response = HttpResponse(buffer, content_type='application/pdf')
         filename = f"EQ_Report_{assessment.name.replace(' ', '_')}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
