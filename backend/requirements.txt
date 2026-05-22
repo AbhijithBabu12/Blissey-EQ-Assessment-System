@@ -1,0 +1,18 @@
+# Backend Dependencies — EQ Assessment System
+# Install with: pip install -r requirements.txt
+
+# Core Framework
+django>=6.0
+djangorestframework>=3.17
+django-cors-headers>=4.9
+
+# NLP / AI (Phase 5)
+transformers>=4.40
+torch>=2.2
+sentencepiece>=0.2
+
+# PDF Reports (Phase 8)
+# weasyprint>=62.0
+
+# Utilities
+python-dotenv>=1.0
