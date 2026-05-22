@@ -1,50 +1,55 @@
-# Blissey: AI-Powered Emotional Intelligence Assessment
+<div align="center">
+  <img src="https://media.tenor.com/_1YrEWVq8_MAAAAj/mew.gif" alt="Blissey Logo" width="150" />
+  
+  # Blissey: AI-Powered Emotional Intelligence Assessment
+  
+  **Live Demo:** [https://blissey-eq.netlify.app](https://blissey-eq.netlify.app)
+</div>
 
-Blissey is a modern, dynamic web application that evaluates a user's Emotional Intelligence (EQ) through personalized, profession-specific scenarios and advanced Natural Language Processing (NLP).
+---
+
+Blissey is a modern, dynamic web application that evaluates a user's Emotional Intelligence (EQ) through highly personalized, profession-specific scenarios and advanced Natural Language Processing (NLP).
 
 ## 🌟 How It Works
 
 1. **Personalization**: You enter your basic information (Name, Age, Profession).
-2. **Dynamic Scenario Generation**: The backend uses a parameterized template engine to generate a realistic, high-stress scenario specifically tailored to your profession group.
-3. **Assessment**: You are presented with 9 scenario-agnostic questions. Each question targets one of 9 specific EQ dimensions (e.g., Empathy, Resilience, Self-Regulation).
+2. **Dynamic AI Generation (Groq)**: The backend uses the lightning-fast **Groq API** (`llama-3.3-70b-versatile`) to generate a realistic, high-stress scenario specifically tailored to your exact age and profession.
+3. **Adaptive Assessment**: The Groq LLM dynamically generates 9 questions based on your specific scenario, targeting 9 distinct EQ dimensions (e.g., Empathy, Resilience, Self-Regulation).
 4. **NLP Analysis**: Your written answers are sent to the backend where two pre-trained HuggingFace Transformer models analyze the raw text:
    - **Emotion Model**: Detects core emotions (Joy, Anger, Fear, Sadness, etc.).
    - **Sentiment Model**: Evaluates if the tone is positive, negative, or neutral.
 5. **Scoring Engine**: The system calculates a "Semantic Richness" score based on the length, depth, and vocabulary of your answer. This richness score acts as a multiplier against the NLP emotion scores to generate a final score out of 100 for each dimension.
-6. **Results & Feedback**: The app displays your overall EQ score, visualizes your dimensional profile using Radar and Bar charts, and generates a personalized feedback report highlighting your strengths and growth areas.
-7. **PDF Export**: You can download a clean, professionally formatted PDF of your results.
+6. **AI Psychological Report**: The system compiles your scores and answers, sending them back to the Groq LLM to generate a personalized, in-depth psychological feedback report highlighting your strengths and growth areas.
+7. **Results & Visualization**: The app displays your overall EQ score and visualizes your dimensional profile using interactive Radar and Bar charts.
+8. **PDF Export**: You can download a clean, professionally formatted PDF of your results generated via `reportlab`.
 
 ---
 
 ## 🏗️ Architecture & File Structure
 
 ### Backend (Django REST Framework)
-Located in `backend/`, the backend handles the heavy lifting of NLP analysis, database management, and API endpoints.
+Located in `backend/`, the backend handles the heavy lifting of NLP analysis, LLM inference, and API endpoints.
 
 **Core Files (`backend/eq_engine/`):**
-- `constants.py`: Defines the 9 EQ dimensions, validation rules, and the specific HuggingFace model IDs used for NLP.
-- `emotion_analyzer.py`: Initializes and runs the HuggingFace text-classification pipelines to extract raw emotion and sentiment scores from user text.
-- `eq_scoring.py`: Contains the complex math logic. It combines the NLP scores with a "Semantic Richness" calculator to produce the final 0-100 scores.
-- `feedback_generator.py`: Takes the final scores, identifies top strengths and weaknesses, and selects actionable recommendations from a predefined logic bank.
-- `question_generator.py`: Holds the static, scenario-agnostic question bank mapped to the 9 EQ dimensions.
-- `scenario_generator.py`: Maps the user's profession to predefined, highly tailored situational templates without relying on external APIs.
+- `constants.py`: Defines the 9 EQ dimensions and the specific HuggingFace model IDs used for NLP.
+- `emotion_analyzer.py`: Initializes and runs the HuggingFace text-classification pipelines to extract raw emotion and sentiment scores.
+- `eq_scoring.py`: Combines the NLP scores with a "Semantic Richness" calculator to produce the final 0-100 scores.
+- `scenario_generator.py`: Uses the Groq API to dynamically generate a custom scenario.
+- `question_generator.py`: Uses the Groq API to generate 9 scenario-specific questions.
+- `feedback_generator.py`: Uses the Groq API to write a personalized psychological evaluation.
 
 **API & Data (`backend/assessment/`):**
-- `models.py`: Defines the SQLite database schemas (`UserAssessment`, `Scenario`, `Response`, `AssessmentResult`).
-- `views.py`: Exposes the REST API endpoints (`/start`, `/questions`, `/submit`, `/results`, `/report`).
-- `templates/report.html`: The HTML template used by `xhtml2pdf` to generate the downloadable PDF report.
+- `models.py`: Defines the SQLite database schemas.
+- `views.py`: Exposes the REST API endpoints and handles the `reportlab` PDF generation.
 
 ### Frontend (React + Vite + TailwindCSS)
-Located in `frontend/`, the frontend provides a sleek, dark-themed, glassmorphism UI with smooth Framer Motion animations.
+Located in `frontend/`, the frontend provides a sleek, dark-themed, premium glassmorphism UI with smooth Framer Motion animations.
 
 **Core Pages (`frontend/src/pages/`):**
-- `LandingPage.jsx`: The entrance. Collects user demographics to feed the scenario generator.
-- `AssessmentPage.jsx`: Displays the dynamic scenario and cycles through the 9 questions with animated transitions.
-- `LoadingPage.jsx`: A stylized waiting screen featuring a spinning Mew GIF while the backend NLP models process the data.
+- `LandingPage.jsx`: The entrance. Collects user demographics.
+- `AssessmentPage.jsx`: Displays the dynamic scenario and cycles through the 9 questions.
+- `LoadingPage.jsx`: A stylized waiting screen featuring a spinning Mew animation that actually handles the backend API processing in real-time.
 - `ResultsPage.jsx`: The final dashboard displaying the Overall Score, Radar Chart, Bar Chart, and textual feedback.
-
-**Components (`frontend/src/components/charts/`):**
-- `RadarChart.jsx` & `BarChart.jsx`: Utilizes `Chart.js` to render the interactive data visualizations.
 
 ---
 
@@ -53,16 +58,15 @@ Located in `frontend/`, the frontend provides a sleek, dark-themed, glassmorphis
 **Frontend:**
 - React (Vite)
 - TailwindCSS (Styling & Layout)
-- Framer Motion (Micro-animations & Page Transitions)
-- Chart.js / react-chartjs-2 (Data Visualization)
+- Framer Motion (Animations)
+- Chart.js (Data Visualization)
 
 **Backend:**
-- Python / Django
-- Django REST Framework (API)
+- Python / Django REST Framework
+- Groq API (`llama-3.3-70b-versatile`)
 - HuggingFace `transformers` (NLP Analysis)
-- PyTorch (Tensor processing)
-- `xhtml2pdf` (PDF Generation)
-- SQLite (Database)
+- `reportlab` (PDF Generation)
+- `gunicorn` & `whitenoise` (Production Deployment)
 
 ## ⚙️ Running Locally
 
@@ -70,6 +74,9 @@ Located in `frontend/`, the frontend provides a sleek, dark-themed, glassmorphis
    ```bash
    cd backend
    pip install -r requirements.txt
+   ```
+   *Create a `.env` file in the root directory and add your `GROQ` API key.*
+   ```bash
    python manage.py makemigrations
    python manage.py migrate
    python manage.py runserver

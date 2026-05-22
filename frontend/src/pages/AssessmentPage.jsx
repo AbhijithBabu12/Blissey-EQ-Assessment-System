@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api, { submitResponses } from '../services/api';
 
 export default function AssessmentPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -15,8 +16,8 @@ export default function AssessmentPage() {
   // State to hold user answers: { [question_id]: "answer text" }
   const [answers, setAnswers] = useState({});
   // State to hold validation errors: { [question_id]: "error message" }
-  const [errors, setErrors] = useState({});
-  const [globalError, setGlobalError] = useState('');
+  const [errors, setErrors] = useState(location.state?.validationErrors || {});
+  const [globalError, setGlobalError] = useState(location.state?.globalError || '');
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -61,28 +62,9 @@ export default function AssessmentPage() {
       user_answer: answers[q.id] || ""
     }));
 
-    try {
-      await submitResponses(id, formattedResponses);
-      // Success! Navigate to loading/analysis page
-      navigate(`/loading/${id}`);
-    } catch (err) {
-      if (err.response && err.response.status === 400 && err.response.data.details) {
-        // Validation errors from our eq_engine
-        const validationErrors = {};
-        err.response.data.details.forEach(detail => {
-          validationErrors[detail.question_id] = detail.message;
-        });
-        setErrors(validationErrors);
-        setGlobalError("Some responses need attention. Please see the warnings below.");
-        
-        // Scroll to top to see the global error
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        setGlobalError("Failed to submit responses. Please try again.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
+    // Instantly navigate to the Loading page with the responses. 
+    // The Loading page will handle the actual API call!
+    navigate(`/loading/${id}`, { state: { formattedResponses } });
   };
 
   if (loading) {
