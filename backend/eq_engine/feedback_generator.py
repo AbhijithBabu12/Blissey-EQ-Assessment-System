@@ -45,9 +45,13 @@ RECOMMENDATION_BANK = {
     "resilience": "After a failure, force yourself to write down three specific, actionable lessons you learned from the experience.",
 }
 
-def generate_feedback(scores: dict) -> dict:
+import os
+import json
+from groq import Groq
+
+def _fallback_generate_feedback(scores: dict) -> dict:
     """
-    Analyzes the 9 dimension scores to generate personalized feedback.
+    Fallback: Analyzes the 9 dimension scores to generate static personalized feedback.
     Returns: { "strengths": list, "weaknesses": list, "recommendations": list, "feedback_text": str }
     """
     # Extract only the 9 EQ dimensions (ignoring overall_eq_score)
@@ -81,3 +85,78 @@ def generate_feedback(scores: dict) -> dict:
         "recommendations": recommendations,
         "feedback_text": feedback_text
     }
+
+
+def generate_feedback(scores: dict, scenario_text: str = "", user_answers: dict = None) -> dict:
+    """
+    Dynamically generates deeply personalized feedback using the GROQ2 API.
+    """
+    groq_api_key = os.getenv("GROQ2")
+    
+    if not groq_api_key or not scenario_text or not user_answers:
+        return _fallback_generate_feedback(scores)
+        
+    try:
+        client = Groq(api_key=groq_api_key)
+        
+        # Prepare context for the prompt
+        dim_scores = {dim: score for dim, score in scores.items() if dim in EQ_DIMENSIONS}
+        sorted_dims = sorted(dim_scores.items(), key=lambda x: x[1], reverse=True)
+        top_3 = [item[0] for item in sorted_dims[:3]]
+        bottom_2 = [item[0] for item in sorted_dims[-2:]]
+        
+        strengths_str = ", ".join([d.replace("_", " ").title() for d in top_3])
+        weaknesses_str = ", ".join([d.replace("_", " ").title() for d in bottom_2])
+        
+        user_answers_formatted = "\n".join([f"- {dim.replace('_', ' ').title()}: \"{answer}\"" for dim, answer in user_answers.items()])
+        
+        prompt = f"""
+You are an expert industrial-organizational psychologist writing a personalized Emotional Intelligence (EQ) evaluation.
+The user faced this stressful scenario:
+"{scenario_text}"
+
+These were their answers to the scenario:
+{user_answers_formatted}
+
+Based on our NLP algorithm, their highest scoring strengths are: {strengths_str}.
+Their lowest scoring areas for improvement are: {weaknesses_str}.
+
+Write a highly personalized, constructive psychological evaluation.
+You MUST respond with ONLY a raw JSON object (no markdown, no backticks).
+The JSON object must have exactly these keys:
+- "strengths": A list of 3 strings (the user's strengths, formatted beautifully).
+- "weaknesses": A list of 2 strings (the user's weaknesses, formatted beautifully).
+- "recommendations": A list of 3 highly specific, actionable advice points tailored directly to what they wrote in their answers.
+- "feedback_text": A cohesive, empathetic 3-4 sentence paragraph summarizing their profile, directly referencing how they handled the scenario.
+"""
+        
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=800,
+            top_p=1,
+            stream=False,
+            stop=None,
+        )
+        
+        response_content = completion.choices[0].message.content.strip()
+        
+        if response_content.startswith("```json"):
+            response_content = response_content.replace("```json", "", 1)
+        if response_content.startswith("```"):
+            response_content = response_content.replace("```", "", 1)
+        if response_content.endswith("```"):
+            response_content = response_content[:-3]
+            
+        feedback_data = json.loads(response_content.strip())
+        
+        required_keys = ["strengths", "weaknesses", "recommendations", "feedback_text"]
+        if not all(key in feedback_data for key in required_keys):
+            raise ValueError("LLM missing required keys.")
+            
+        return feedback_data
+        
+    except Exception as e:
+        print(f"Groq API Error generating feedback: {e}")
+        return _fallback_generate_feedback(scores)

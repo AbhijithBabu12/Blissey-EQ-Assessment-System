@@ -47,7 +47,7 @@ def start_assessment(request):
         )
         
         # --- Real Engine Call: generate_questions() ---
-        questions_data = generate_questions(scenario.scenario_type)
+        questions_data = generate_questions(scenario.scenario_type, scenario.scenario_text)
         
         questions = []
         for q_data in questions_data:
@@ -155,8 +155,12 @@ def submit_responses(request, assessment_id):
     # --- Real Engine Call: calculate_eq_scores() ---
     calculated_scores = calculate_eq_scores(saved_responses)
     
+    # Extract data for personalized feedback
+    scenario = get_object_or_404(Scenario, assessment=assessment)
+    user_answers_dict = {r.question.eq_dimension: r.user_answer for r in saved_responses}
+    
     # --- Real Engine Call: generate_feedback() ---
-    feedback = generate_feedback(calculated_scores)
+    feedback = generate_feedback(calculated_scores, scenario.scenario_text, user_answers_dict)
     
     result = Result.objects.create(
         assessment=assessment,
