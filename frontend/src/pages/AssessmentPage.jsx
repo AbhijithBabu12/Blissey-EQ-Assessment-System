@@ -163,13 +163,13 @@ export default function AssessmentPage() {
                 <h3 className="text-lg md:text-xl font-medium text-white leading-relaxed" style={{ marginBottom: '1.25rem' }}>
                   {q.question_text}
                 </h3>
-                <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--color-accent)', marginTop: '0.5rem', marginBottom: '1.5rem' }}>
+                <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--color-accent)', marginTop: '0.5rem', marginBottom: '2.5rem' }}>
                   Analyzing: {q.eq_dimension.replace('_', ' ')}
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 w-full">
+            <div className="mt-8 w-full">
               <textarea
                 value={answers[q.id]}
                 onChange={(e) => handleAnswerChange(q.id, e.target.value)}
@@ -177,8 +177,8 @@ export default function AssessmentPage() {
                 className="w-full resize-y transition-all text-base md:text-lg leading-relaxed text-left"
                 style={{
                   minHeight: '140px',
-                  padding: '1.2rem 1.5rem',
-                  backgroundColor: 'var(--color-bg-primary)',
+                  padding: '1.5rem',
+                  backgroundColor: '#000000',
                   border: '1px solid',
                   borderColor: errors[q.id] ? 'rgba(239, 68, 68, 0.5)' : 'var(--color-border)',
                   borderRadius: '16px',
