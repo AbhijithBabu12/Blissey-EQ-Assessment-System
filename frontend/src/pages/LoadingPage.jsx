@@ -44,6 +44,11 @@ export default function LoadingPage() {
 
       } catch (err) {
         clearInterval(interval);
+        // Retrieve scenario/questions that were passed from AssessmentPage (if available)
+        const passBackState = location.state?.scenario && location.state?.questions 
+          ? { scenario: location.state.scenario, questions: location.state.questions } 
+          : {};
+
         // Handle Validation Errors by bouncing back to Assessment
         if (err.response && err.response.status === 400 && err.response.data.details) {
           const validationErrors = {};
@@ -52,13 +57,14 @@ export default function LoadingPage() {
           });
           navigate(`/assessment/${id}`, { 
             state: { 
+              ...passBackState,
               validationErrors, 
               globalError: "Some responses need attention. Please see the warnings below." 
             } 
           });
         } else {
           navigate(`/assessment/${id}`, { 
-            state: { globalError: "Failed to submit responses. Please try again." } 
+            state: { ...passBackState, globalError: "Failed to submit responses. Please try again." } 
           });
         }
       }

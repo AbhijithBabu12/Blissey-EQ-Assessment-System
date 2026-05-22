@@ -29,7 +29,9 @@ export default function LandingPage() {
         ...formData,
         age: parseInt(formData.age, 10)
       });
-      navigate(`/assessment/${data.assessment_id}`);
+      navigate(`/assessment/${data.assessment_id}`, { 
+        state: { scenario: data.scenario, questions: data.questions } 
+      });
     } catch (err) {
       console.error(err);
       setError('Failed to start assessment. Please check your connection to the server.');

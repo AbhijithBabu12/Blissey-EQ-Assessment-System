@@ -5,6 +5,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
   baseURL: API_BASE,
+  timeout: 180000, // 3 minutes — Railway needs time to load HuggingFace models on cold start
   headers: {
     'Content-Type': 'application/json',
   },

@@ -20,13 +20,28 @@ export default function AssessmentPage() {
   const [globalError, setGlobalError] = useState(location.state?.globalError || '');
 
   useEffect(() => {
+    // If data was passed via router state (from LandingPage or LoadingPage bounce-back), use it directly
+    if (location.state?.scenario && location.state?.questions) {
+      setScenario(location.state.scenario);
+      setQuestions(location.state.questions);
+      
+      // Initialize answers state
+      const initialAnswers = {};
+      location.state.questions.forEach(q => {
+        initialAnswers[q.id] = '';
+      });
+      setAnswers(initialAnswers);
+      setLoading(false);
+      return;
+    }
+
+    // Fallback: fetch from API if no state was passed (e.g. direct URL navigation)
     const fetchQuestions = async () => {
       try {
         const response = await api.get(`/api/assessment/${id}/questions/`);
         setScenario(response.data.scenario);
         setQuestions(response.data.questions);
         
-        // Initialize answers state
         const initialAnswers = {};
         response.data.questions.forEach(q => {
           initialAnswers[q.id] = '';
@@ -64,7 +79,7 @@ export default function AssessmentPage() {
 
     // Instantly navigate to the Loading page with the responses. 
     // The Loading page will handle the actual API call!
-    navigate(`/loading/${id}`, { state: { formattedResponses } });
+    navigate(`/loading/${id}`, { state: { formattedResponses, scenario, questions } });
   };
 
   if (loading) {
