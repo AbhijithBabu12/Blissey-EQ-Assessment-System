@@ -10,13 +10,11 @@ export default function LoadingPage() {
   const [step, setStep] = useState(0);
 
   const steps = [
-    "Initializing Neural Networks...",
-    "Scanning Lexical Semantics...",
-    "Running Emotion Analysis Models...",
-    "Processing Groq Inference...",
+    "Initializing Transformer Models...",
+    "Running Emotion & Sentiment Analysis...",
+    "Scanning for Behavioral Indicators...",
     "Calculating EQ Dimensions...",
-    "Generating AI Psychological Profile...",
-    "Finalizing Results..."
+    "Generating AI Feedback Profile..."
   ];
 
   useEffect(() => {
@@ -80,8 +78,7 @@ export default function LoadingPage() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="glass-card p-12 max-w-xl w-full flex flex-col items-center text-center relative z-10 border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]"
-        style={{ borderRadius: '32px' }}
+        className="p-12 max-w-xl w-full flex flex-col items-center text-center relative z-10"
       >
         {/* Pulsing ring behind Mew */}
         <div className="relative w-40 h-40 mb-10 flex items-center justify-center">
