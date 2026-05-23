@@ -15,9 +15,9 @@ Blissey is a modern, dynamic web application that evaluates a user's Emotional I
 1. **Personalization**: You enter your basic information (Name, Age, Profession).
 2. **Dynamic AI Generation (Groq)**: The backend uses the lightning-fast **Groq API** (`llama-3.3-70b-versatile`) to generate a realistic, high-stress scenario specifically tailored to your exact age and profession.
 3. **Adaptive Assessment**: The Groq LLM dynamically generates 9 questions based on your specific scenario, targeting 9 distinct EQ dimensions (e.g., Empathy, Resilience, Self-Regulation).
-4. **NLP Analysis**: Your written answers are sent to the backend where two pre-trained HuggingFace Transformer models analyze the raw text:
-   - **Emotion Model**: Detects core emotions (Joy, Anger, Fear, Sadness, etc.).
-   - **Sentiment Model**: Evaluates if the tone is positive, negative, or neutral.
+4. **NLP Analysis**: Your written answers are sent to the backend where two pre-trained HuggingFace Transformer models analyze the raw text via the Serverless Inference API:
+   - **Emotion Model (`j-hartmann/emotion-english-distilroberta-base`)**: Detects core emotions (Joy, Anger, Fear, Sadness, etc.).
+   - **Sentiment Model (`cardiffnlp/twitter-roberta-base-sentiment-latest`)**: Evaluates if the tone is positive, negative, or neutral.
 5. **Scoring Engine**: The system calculates a "Semantic Richness" score based on the length, depth, and vocabulary of your answer. This richness score acts as a multiplier against the NLP emotion scores to generate a final score out of 100 for each dimension.
 6. **AI Psychological Report**: The system compiles your scores and answers, sending them back to the Groq LLM to generate a personalized, in-depth psychological feedback report highlighting your strengths and growth areas.
 7. **Results & Visualization**: The app displays your overall EQ score and visualizes your dimensional profile using interactive Radar and Bar charts.

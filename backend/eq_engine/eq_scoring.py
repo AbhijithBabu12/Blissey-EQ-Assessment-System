@@ -31,7 +31,8 @@ def calculate_eq_scores(responses) -> dict:
         # These are heuristics defining what a "good" vs "bad" response looks like per dimension.
         
         # A. Sentiment Impact
-        if r.sentiment_label == "POSITIVE":
+        sentiment_upper = r.sentiment_label.upper() if r.sentiment_label else ""
+        if sentiment_upper == "POSITIVE":
             # Positive sentiment generally implies better EQ handling (e.g., optimism, resolution)
             raw_scores[dim] += (10.0 * r.sentiment_score)
         else:

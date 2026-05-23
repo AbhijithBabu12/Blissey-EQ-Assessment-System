@@ -386,4 +386,4 @@ SPAM_PATTERNS = [
 # ============================================================
 
 EMOTION_MODEL = "j-hartmann/emotion-english-distilroberta-base"
-SENTIMENT_MODEL = "distilbert-base-uncased-finetuned-sst-2-english"
+SENTIMENT_MODEL = "cardiffnlp/twitter-roberta-base-sentiment-latest"
