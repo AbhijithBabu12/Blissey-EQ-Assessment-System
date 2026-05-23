@@ -203,9 +203,9 @@ def get_results(request, assessment_id):
 from django.http import HttpResponse
 from datetime import datetime
 import io
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib import colors
 
 @api_view(["GET"])
 def get_report(request, assessment_id):
@@ -218,38 +218,40 @@ def get_report(request, assessment_id):
     
     try:
         buffer = io.BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-        width, height = letter
+        doc = SimpleDocTemplate(
+            buffer, pagesize=letter,
+            rightMargin=72, leftMargin=72,
+            topMargin=72, bottomMargin=72
+        )
+        
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='MainTitle', fontSize=24, spaceAfter=30, fontName='Helvetica-Bold'))
+        styles.add(ParagraphStyle(name='SubHeader', fontSize=14, spaceAfter=10, spaceBefore=20, fontName='Helvetica-Bold'))
+        styles.add(ParagraphStyle(name='NormalText', fontSize=11, spaceAfter=10, fontName='Helvetica', leading=16))
+        
+        story = []
         
         # Header
-        c.setFont("Helvetica-Bold", 24)
-        c.drawString(50, height - 50, "Blissey EQ Assessment Report")
+        story.append(Paragraph("Blissey EQ Assessment Report", styles['MainTitle']))
+        story.append(Paragraph(f"<b>Name:</b> {assessment.name}", styles['NormalText']))
+        story.append(Paragraph(f"<b>Profession:</b> {assessment.profession}", styles['NormalText']))
+        story.append(Paragraph(f"<b>Date:</b> {datetime.now().strftime('%B %d, %Y')}", styles['NormalText']))
         
-        c.setFont("Helvetica", 12)
-        c.drawString(50, height - 80, f"Name: {assessment.name}")
-        c.drawString(50, height - 100, f"Profession: {assessment.profession}")
-        c.drawString(50, height - 120, f"Date: {datetime.now().strftime('%B %d, %Y')}")
+        story.append(Spacer(1, 20))
         
         # Score
-        c.setFont("Helvetica-Bold", 16)
-        c.drawString(50, height - 160, f"Overall EQ Score: {result.overall_eq_score} / 100")
-        c.drawString(50, height - 180, f"Level: {assessment.eq_level.replace('_', ' ').title()}")
+        story.append(Paragraph(f"<b>Overall EQ Score:</b> {result.overall_eq_score} / 100", styles['SubHeader']))
+        story.append(Paragraph(f"<b>Level:</b> {assessment.eq_level.replace('_', ' ').title()}", styles['NormalText']))
         
         # Summary
-        c.setFont("Helvetica-Bold", 14)
-        c.drawString(50, height - 220, "AI Analysis Summary:")
-        c.setFont("Helvetica", 11)
+        story.append(Paragraph("AI Analysis Summary", styles['SubHeader']))
         
-        # Simple text wrapping
-        text = result.feedback_text
-        textobject = c.beginText(50, height - 240)
-        textobject.setFont("Helvetica", 11)
-        for line in text.split('. '):
-            textobject.textLine(line + '.')
-        c.drawText(textobject)
+        # Split by paragraphs (newlines) instead of sentences, and let ReportLab handle word wrapping
+        for paragraph in result.feedback_text.split('\n'):
+            if paragraph.strip():
+                story.append(Paragraph(paragraph.strip(), styles['NormalText']))
         
-        c.showPage()
-        c.save()
+        doc.build(story)
         
         buffer.seek(0)
         response = HttpResponse(buffer, content_type='application/pdf')
