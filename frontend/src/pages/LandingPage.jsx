@@ -79,7 +79,10 @@ export default function LandingPage() {
           className="glass-card w-full relative z-10"
           style={{ padding: '3rem' }}
         >
-          <div className="mb-14 border-b border-[var(--color-border)] pb-8">
+          <div 
+            className="border-b border-[var(--color-border)]"
+            style={{ paddingBottom: '1.75rem', marginBottom: '2.5rem' }}
+          >
             <h3 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
               Begin your assessment
             </h3>
