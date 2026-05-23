@@ -42,6 +42,123 @@ EQ_DIMENSION_DESCRIPTIONS = {
 }
 
 
+# ============================================================
+# 2. SCENARIO TYPES
+# 10 categories of emotional situations the system generates.
+# Each scenario tests specific EQ dimensions.
+# ============================================================
+
+SCENARIO_TYPES = [
+    "workplace_conflict",
+    "ethical_dilemma",
+    "leadership_pressure",
+    "team_failure",
+    "criticism_handling",
+    "emotional_loss",
+    "high_pressure_decision",
+    "communication_breakdown",
+    "social_rejection",
+    "unexpected_failure",
+]
+
+# Which EQ dimensions each scenario type primarily tests
+SCENARIO_DIMENSION_MAP = {
+    "workplace_conflict": ["conflict_resolution", "social_skills", "self_regulation"],
+    "ethical_dilemma": ["self_awareness", "motivation", "resilience"],
+    "leadership_pressure": ["stress_management", "social_skills", "motivation"],
+    "team_failure": ["resilience", "empathy", "adaptability"],
+    "criticism_handling": ["self_awareness", "self_regulation", "resilience"],
+    "emotional_loss": ["resilience", "stress_management", "self_awareness"],
+    "high_pressure_decision": ["stress_management", "adaptability", "motivation"],
+    "communication_breakdown": ["social_skills", "empathy", "conflict_resolution"],
+    "social_rejection": ["resilience", "self_awareness", "adaptability"],
+    "unexpected_failure": ["resilience", "adaptability", "stress_management"],
+}
+
+
+# ============================================================
+# 3. PROFESSION GROUPS
+# How the AI adapts scenarios to the user's profession.
+# Users type free text; we fuzzy-match into these groups.
+# ============================================================
+
+PROFESSION_GROUPS = {
+    "technical": [
+        "software engineer",
+        "data scientist",
+        "cybersecurity analyst",
+        "devops engineer",
+        "ml engineer",
+        "web developer",
+        "system administrator",
+    ],
+    "medical": [
+        "doctor",
+        "nurse",
+        "therapist",
+        "pharmacist",
+        "paramedic",
+        "psychologist",
+    ],
+    "education": [
+        "teacher",
+        "professor",
+        "trainer",
+        "academic researcher",
+        "teaching assistant",
+    ],
+    "management": [
+        "manager",
+        "team lead",
+        "hr",
+        "project manager",
+        "ceo",
+        "cto",
+        "product manager",
+    ],
+    "creative": [
+        "designer",
+        "writer",
+        "artist",
+        "musician",
+        "content creator",
+        "photographer",
+    ],
+    "general": [
+        "student",
+        "freelancer",
+        "unemployed",
+        "intern",
+        "entrepreneur",
+        "other",
+    ],
+}
+
+
+# ============================================================
+# 4. EMOTION & SENTIMENT LABELS
+# Mapped to Hugging Face model outputs.
+# ============================================================
+
+# From: j-hartmann/emotion-english-distilroberta-base
+EMOTIONS = [
+    "anger",
+    "disgust",
+    "fear",
+    "joy",
+    "neutral",
+    "sadness",
+    "surprise",
+]
+
+# From: distilbert-base-uncased-finetuned-sst-2-english
+SENTIMENTS = [
+    "POSITIVE",
+    "NEGATIVE",
+]
+
+
+# ============================================================
 # 5. SCORING INDICATORS
 # Keywords/patterns that increase or decrease EQ dimension scores.
 # Used by the scoring engine to map NLP outputs → EQ scores.
@@ -269,4 +386,4 @@ SPAM_PATTERNS = [
 # ============================================================
 
 EMOTION_MODEL = "j-hartmann/emotion-english-distilroberta-base"
-SENTIMENT_MODEL = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
+SENTIMENT_MODEL = "distilbert-base-uncased-finetuned-sst-2-english"

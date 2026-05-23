@@ -5,12 +5,6 @@ import os
 import json
 import random
 from groq import Groq
-from .constants import SCENARIO_DIMENSION_MAP, EQ_DIMENSIONS
-
-
-import os
-import json
-from groq import Groq
 from .constants import EQ_DIMENSIONS
 
 def generate_questions(scenario_type: str, scenario_text: str = "") -> list[dict]:
