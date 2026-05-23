@@ -39,6 +39,44 @@ If you upgrade to a premium Render or Railway tier (with 2GB+ of RAM), you can b
 
 ---
 
+## 🧮 The Scoring Engine Algorithm
+
+The EQ scoring system (`eq_scoring.py`) calculates the final 0-100 scores for each dimension using a precise 4-step algorithm:
+
+### 1. Initialization
+- **`Raw_Score`**: Starts at `50.0` for all 9 dimensions (neutral baseline).
+- **`Weight`**: Starts at `1.0` for all 9 dimensions. If a question specifically targets a dimension, that dimension's weight increases by `+1.5`.
+
+### 2. Hugging Face NLP Multipliers
+The engine applies Confidence and Emotional Intensity scores (0.0 to 1.0) from the Hugging Face AI to the `Raw_Score`:
+
+**Sentiment Math:**
+* If Sentiment == `POSITIVE`: `Raw_Score += (10.0 × Sentiment_Score)`
+* If Sentiment == `NEGATIVE` or `NEUTRAL`:
+  * *For Regulation/Conflict/Stress:* `Raw_Score -= (10.0 × Emotional_Intensity)`
+  * *For Awareness/Empathy:* `Raw_Score += (5.0 × Emotional_Intensity)`
+
+**Emotion Math:**
+* If `JOY` or `SURPRISE` ➔ *Motivation/Adaptability:* `Raw_Score += 10.0`
+* If `ANGER` ➔ *Regulation/Conflict:* `Raw_Score -= (15.0 × Emotional_Intensity)`
+* If `FEAR` ➔ *Stress/Resilience:* `Raw_Score -= (10.0 × Emotional_Intensity)`
+* If `SADNESS`:
+  * *Empathy:* `Raw_Score += 5.0`
+  * *Resilience:* `Raw_Score -= (5.0 × Emotional_Intensity)`
+
+### 3. Semantic Keyword Analysis
+The system scans the combined response text for specific psychological keyword matches:
+* For **every** positive phrase match (e.g., *"compromise"*): `Raw_Score += 8.0`
+* For **every** negative phrase match (e.g., *"give up"*): `Raw_Score -= 12.0`
+
+### 4. Normalization Formula
+To prevent score inflation from highly-tested dimensions, the score is normalized, randomized slightly for organic variance, and clamped:
+1. `Normalized_Score = Raw_Score / (Weight / 2.0)`
+2. `Final_Score = Normalized_Score + Random(-2.0, 2.0)`
+3. `Clamped_Score = max(0.0, min(100.0, round(Final_Score, 1)))`
+
+---
+
 ## 📸 Screenshots
 
 | Landing Page | Scenario Loading |
