@@ -10,18 +10,32 @@
 
 Blissey is a modern, dynamic web application that evaluates a user's Emotional Intelligence (EQ) through highly personalized, profession-specific scenarios and advanced Natural Language Processing (NLP).
 
-## 🌟 How It Works
+## 🌟 Key Features & Workflow
 
 1. **Personalization**: You enter your basic information (Name, Age, Profession).
 2. **Dynamic AI Generation (Groq)**: The backend uses the lightning-fast **Groq API** (`llama-3.3-70b-versatile`) to generate a realistic, high-stress scenario specifically tailored to your exact age and profession.
 3. **Adaptive Assessment**: The Groq LLM dynamically generates 9 questions based on your specific scenario, targeting 9 distinct EQ dimensions (e.g., Empathy, Resilience, Self-Regulation).
-4. **NLP Analysis**: Your written answers are sent to the backend where two pre-trained HuggingFace Transformer models analyze the raw text via the Serverless Inference API:
+4. **NLP Analysis (Hugging Face)**: Your written answers are sent to the backend where two pre-trained HuggingFace Transformer models analyze the raw text:
    - **Emotion Model (`j-hartmann/emotion-english-distilroberta-base`)**: Detects core emotions (Joy, Anger, Fear, Sadness, etc.).
    - **Sentiment Model (`cardiffnlp/twitter-roberta-base-sentiment-latest`)**: Evaluates if the tone is positive, negative, or neutral.
 5. **Scoring Engine**: The system calculates a "Semantic Richness" score based on the length, depth, and vocabulary of your answer. This richness score acts as a multiplier against the NLP emotion scores to generate a final score out of 100 for each dimension.
 6. **AI Psychological Report**: The system compiles your scores and answers, sending them back to the Groq LLM to generate a personalized, in-depth psychological feedback report highlighting your strengths and growth areas.
 7. **Results & Visualization**: The app displays your overall EQ score and visualizes your dimensional profile using interactive Radar and Bar charts.
-8. **PDF Export**: You can download a clean, professionally formatted PDF of your results generated via `reportlab`.
+8. **PDF Export**: You can download a clean, professionally formatted PDF of your results generated via `reportlab` (Platypus Engine).
+
+---
+
+## 🧠 NLP Architecture & Memory Management
+
+Running PyTorch and multiple Transformer models locally requires roughly **1.2 GB to 1.5 GB of RAM**. 
+
+Because free hosting platforms like Render and Railway limit containers to **~512MB of RAM**, running these models natively in the backend causes immediate Out-of-Memory (OOM) crashes.
+
+**How we run it right now:**
+To bypass this limitation on the free tier, we are using the **Hugging Face Serverless Inference API**. Instead of downloading the 1GB model weights into our backend, we send the text to Hugging Face's API. This reduces our backend memory footprint to just ~100MB, completely eliminating crashes while making inference extremely fast.
+
+**Running on a Premium Server:**
+If you upgrade to a premium Render or Railway tier (with 2GB+ of RAM), you can bypass the API and run the models directly on your own server. You would simply change the pipeline setup to download the `.safetensors` model weights and execute inference locally via PyTorch inside the Django backend.
 
 ---
 
@@ -47,8 +61,8 @@ Blissey is a modern, dynamic web application that evaluates a user's Emotional I
 Located in `backend/`, the backend handles the heavy lifting of NLP analysis, LLM inference, and API endpoints.
 
 **Core Files (`backend/eq_engine/`):**
-- `constants.py`: Defines the 9 EQ dimensions and the specific HuggingFace model IDs used for NLP.
-- `emotion_analyzer.py`: Initializes and runs the HuggingFace text-classification pipelines to extract raw emotion and sentiment scores.
+- `constants.py`: Defines the 9 EQ dimensions, model identifiers, and scoring indicators.
+- `emotion_analyzer.py`: Connects to the Hugging Face Inference API to extract raw emotion and sentiment scores in parallel.
 - `eq_scoring.py`: Combines the NLP scores with a "Semantic Richness" calculator to produce the final 0-100 scores.
 - `scenario_generator.py`: Uses the Groq API to dynamically generate a custom scenario.
 - `question_generator.py`: Uses the Groq API to generate 9 scenario-specific questions.
@@ -56,7 +70,7 @@ Located in `backend/`, the backend handles the heavy lifting of NLP analysis, LL
 
 **API & Data (`backend/assessment/`):**
 - `models.py`: Defines the SQLite database schemas.
-- `views.py`: Exposes the REST API endpoints and handles the `reportlab` PDF generation.
+- `views.py`: Exposes the REST API endpoints and handles the ReportLab PDF generation.
 
 ### Frontend (React + Vite + TailwindCSS)
 Located in `frontend/`, the frontend provides a sleek, dark-themed, premium glassmorphism UI with smooth Framer Motion animations.
@@ -80,7 +94,7 @@ Located in `frontend/`, the frontend provides a sleek, dark-themed, premium glas
 **Backend:**
 - Python / Django REST Framework
 - Groq API (`llama-3.3-70b-versatile`)
-- HuggingFace `transformers` (NLP Analysis)
+- Hugging Face Inference API (NLP Analysis)
 - `reportlab` (PDF Generation)
 - `gunicorn` & `whitenoise` (Production Deployment)
 
@@ -91,7 +105,7 @@ Located in `frontend/`, the frontend provides a sleek, dark-themed, premium glas
    cd backend
    pip install -r requirements.txt
    ```
-   *Create a `.env` file in the root directory and add your `GROQ` API key.*
+   *Create a `.env` file in the root directory and add your `GROQ` and `HF_TOKEN` API keys.*
    ```bash
    python manage.py makemigrations
    python manage.py migrate
