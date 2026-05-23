@@ -7,7 +7,7 @@ djangorestframework>=3.17
 django-cors-headers>=4.9
 
 # HuggingFace Inference API (lightweight — no PyTorch needed)
-requests>=2.31
+huggingface-hub>=0.23
 
 # PDF Reports & Deployment
 reportlab>=4.0
