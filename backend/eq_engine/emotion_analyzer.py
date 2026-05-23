@@ -2,13 +2,13 @@
 HuggingFace Inference API Pipeline for Emotion and Sentiment Analysis.
 
 Uses the free HuggingFace Inference API to run the exact same transformer models
-(j-hartmann/emotion-english-distilroberta-base, distilbert-base-uncased-finetuned-sst-2-english)
 without requiring a local PyTorch installation — making it compatible with free-tier hosting.
 """
 import os
 import re
 import requests
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .constants import EMOTION_MODEL, SENTIMENT_MODEL
 
 HF_API_URL = "https://api-inference.huggingface.co/models/"
@@ -16,11 +16,10 @@ HF_TOKEN = os.environ.get("HF_TOKEN", "")
 
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
 
-
 def _query_hf_api(model_id: str, text: str, parameters: dict = None, retries: int = 5) -> list:
     """
     Send text to HuggingFace Inference API and return model output.
-    Automatically retries if the model is cold-starting (503).
+    Automatically retries on 503 (loading) or ConnectionError (DNS issues on free tiers).
     """
     url = f"{HF_API_URL}{model_id}"
     payload = {"inputs": text}
@@ -38,13 +37,17 @@ def _query_hf_api(model_id: str, text: str, parameters: dict = None, retries: in
                 body = response.json()
                 wait_time = body.get("estimated_time", 20)
                 print(f"[HF API] Model '{model_id}' is loading, waiting {wait_time:.0f}s (attempt {attempt + 1}/{retries})...")
-                time.sleep(min(wait_time, 30))
+                time.sleep(min(wait_time, 15))
             else:
                 print(f"[HF API] Error {response.status_code}: {response.text}")
                 response.raise_for_status()
-        except requests.exceptions.Timeout:
-            print(f"[HF API] Timeout for '{model_id}' (attempt {attempt + 1}/{retries}), retrying...")
-            time.sleep(5)
+        except requests.exceptions.RequestException as e:
+            # Catches Timeout, ConnectionError, DNS Resolution Errors, etc.
+            print(f"[HF API] Network error for '{model_id}' (attempt {attempt + 1}/{retries}): {e}")
+            if attempt < retries - 1:
+                time.sleep(2)  # Wait 2 seconds before retrying
+            else:
+                raise Exception(f"HuggingFace API failed after {retries} retries: {str(e)}")
 
     raise Exception(f"HuggingFace Inference API failed after {retries} retries for model '{model_id}'")
 
@@ -72,52 +75,41 @@ def calculate_semantic_richness(text: str) -> float:
 def analyze_text(text: str) -> dict:
     """
     Passes the user's text response through HuggingFace Inference API.
-    Uses the same models as before, but hosted on HuggingFace's servers.
-    
-    Returns:
-    {
-        "emotion_detected": str,        # Primary emotion
-        "emotion_scores": dict,         # All emotion probabilities
-        "sentiment_label": str,         # POSITIVE or NEGATIVE
-        "sentiment_score": float,       # Confidence score (0-1)
-        "emotional_intensity": float,   # Calculated intensity metric
-        "semantic_richness": float      # Lexical diversity metric
-    }
+    Uses ThreadPoolExecutor to run both API calls concurrently to save time.
     """
-    # 1. Emotion Analysis — get all labels
-    emo_results = _query_hf_api(EMOTION_MODEL, text, parameters={"top_k": None})
+    # Run both Emotion and Sentiment analysis in parallel
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_emo = executor.submit(_query_hf_api, EMOTION_MODEL, text, {"top_k": None})
+        future_sent = executor.submit(_query_hf_api, SENTIMENT_MODEL, text)
+        
+        emo_results = future_emo.result()
+        sent_results = future_sent.result()
     
-    # API returns [[{label, score}, ...]] for single input
+    # Parse Emotion Results
     if isinstance(emo_results, list) and len(emo_results) > 0:
         if isinstance(emo_results[0], list):
             emo_results = emo_results[0]
     
     emotion_scores = {item['label']: item['score'] for item in emo_results}
-    
-    # The primary emotion is the one with the highest score
     primary_emotion = max(emotion_scores, key=emotion_scores.get)
     primary_emotion_score = emotion_scores[primary_emotion]
     
-    # 2. Sentiment Analysis
-    sent_results = _query_hf_api(SENTIMENT_MODEL, text)
-    
-    # API returns [[{label, score}]] for single input
+    # Parse Sentiment Results
     if isinstance(sent_results, list) and len(sent_results) > 0:
         if isinstance(sent_results[0], list):
             sent_results = sent_results[0]
-    
+            
     sentiment_label = sent_results[0]['label']
     sentiment_score = sent_results[0]['score']
     
-    # 3. Emotional Intensity Calculation
+    # Calculate Emotional Intensity
     intensity = primary_emotion_score
     if primary_emotion == "neutral":
-        intensity = 1.0 - primary_emotion_score  # High confidence in neutral = low intensity
-    
-    # Combine with sentiment confidence
+        intensity = 1.0 - primary_emotion_score
+        
     emotional_intensity = (intensity * 0.7) + (sentiment_score * 0.3)
     
-    # 4. Semantic Richness
+    # Calculate Semantic Richness
     richness = calculate_semantic_richness(text)
     
     return {
