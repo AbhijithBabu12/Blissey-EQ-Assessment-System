@@ -79,7 +79,7 @@ export default function LandingPage() {
           className="glass-card w-full relative z-10"
           style={{ padding: '3rem' }}
         >
-          <div className="mb-8">
+          <div className="mb-12">
             <h3 className="text-2xl font-semibold text-white">Begin your assessment</h3>
             <p className="text-[var(--color-text-secondary)] text-sm mt-2">Enter your details to generate a customized scenario.</p>
           </div>
