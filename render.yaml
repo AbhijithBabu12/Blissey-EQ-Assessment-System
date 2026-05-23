@@ -13,3 +13,5 @@ services:
         sync: false
       - key: GROQ2
         sync: false
+      - key: HF_TOKEN
+        sync: false

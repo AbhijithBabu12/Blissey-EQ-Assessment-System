@@ -1,30 +1,52 @@
 """
-Transformer-based NLP Pipeline for Emotion and Sentiment Analysis.
+HuggingFace Inference API Pipeline for Emotion and Sentiment Analysis.
+
+Uses the free HuggingFace Inference API to run the exact same transformer models
+(j-hartmann/emotion-english-distilroberta-base, distilbert-base-uncased-finetuned-sst-2-english)
+without requiring a local PyTorch installation — making it compatible with free-tier hosting.
 """
-from transformers import pipeline
+import os
 import re
+import requests
+import time
 from .constants import EMOTION_MODEL, SENTIMENT_MODEL
 
-# We use lazy loading for the pipelines so they don't block Django server startup.
-# They will be loaded into memory the first time analyze_text is called.
-_emotion_pipeline = None
-_sentiment_pipeline = None
+HF_API_URL = "https://api-inference.huggingface.co/models/"
+HF_TOKEN = os.environ.get("HF_TOKEN", "")
+
+HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"} if HF_TOKEN else {}
 
 
-def get_emotion_pipeline():
-    global _emotion_pipeline
-    if _emotion_pipeline is None:
-        print(f"Loading Emotion Model: {EMOTION_MODEL}...")
-        _emotion_pipeline = pipeline("text-classification", model=EMOTION_MODEL, top_k=None)
-    return _emotion_pipeline
+def _query_hf_api(model_id: str, text: str, parameters: dict = None, retries: int = 5) -> list:
+    """
+    Send text to HuggingFace Inference API and return model output.
+    Automatically retries if the model is cold-starting (503).
+    """
+    url = f"{HF_API_URL}{model_id}"
+    payload = {"inputs": text}
+    if parameters:
+        payload["parameters"] = parameters
 
+    for attempt in range(retries):
+        try:
+            response = requests.post(url, headers=HEADERS, json=payload, timeout=120)
 
-def get_sentiment_pipeline():
-    global _sentiment_pipeline
-    if _sentiment_pipeline is None:
-        print(f"Loading Sentiment Model: {SENTIMENT_MODEL}...")
-        _sentiment_pipeline = pipeline("sentiment-analysis", model=SENTIMENT_MODEL)
-    return _sentiment_pipeline
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 503:
+                # Model is loading on HF servers — wait and retry
+                body = response.json()
+                wait_time = body.get("estimated_time", 20)
+                print(f"[HF API] Model '{model_id}' is loading, waiting {wait_time:.0f}s (attempt {attempt + 1}/{retries})...")
+                time.sleep(min(wait_time, 30))
+            else:
+                print(f"[HF API] Error {response.status_code}: {response.text}")
+                response.raise_for_status()
+        except requests.exceptions.Timeout:
+            print(f"[HF API] Timeout for '{model_id}' (attempt {attempt + 1}/{retries}), retrying...")
+            time.sleep(5)
+
+    raise Exception(f"HuggingFace Inference API failed after {retries} retries for model '{model_id}'")
 
 
 def calculate_semantic_richness(text: str) -> float:
@@ -49,7 +71,8 @@ def calculate_semantic_richness(text: str) -> float:
 
 def analyze_text(text: str) -> dict:
     """
-    Passes the user's text response through Hugging Face transformer models.
+    Passes the user's text response through HuggingFace Inference API.
+    Uses the same models as before, but hosted on HuggingFace's servers.
     
     Returns:
     {
@@ -61,10 +84,13 @@ def analyze_text(text: str) -> dict:
         "semantic_richness": float      # Lexical diversity metric
     }
     """
-    # 1. Emotion Analysis
-    emo_pipe = get_emotion_pipeline()
-    # top_k=None returns a list of dictionaries with all labels and scores
-    emo_results = emo_pipe(text)[0] 
+    # 1. Emotion Analysis — get all labels
+    emo_results = _query_hf_api(EMOTION_MODEL, text, parameters={"top_k": None})
+    
+    # API returns [[{label, score}, ...]] for single input
+    if isinstance(emo_results, list) and len(emo_results) > 0:
+        if isinstance(emo_results[0], list):
+            emo_results = emo_results[0]
     
     emotion_scores = {item['label']: item['score'] for item in emo_results}
     
@@ -73,15 +99,17 @@ def analyze_text(text: str) -> dict:
     primary_emotion_score = emotion_scores[primary_emotion]
     
     # 2. Sentiment Analysis
-    sent_pipe = get_sentiment_pipeline()
-    sent_results = sent_pipe(text)[0]
+    sent_results = _query_hf_api(SENTIMENT_MODEL, text)
     
-    sentiment_label = sent_results['label']
-    sentiment_score = sent_results['score']
+    # API returns [[{label, score}]] for single input
+    if isinstance(sent_results, list) and len(sent_results) > 0:
+        if isinstance(sent_results[0], list):
+            sent_results = sent_results[0]
+    
+    sentiment_label = sent_results[0]['label']
+    sentiment_score = sent_results[0]['score']
     
     # 3. Emotional Intensity Calculation
-    # If a user is highly confident in an emotion (especially a strong one like anger/joy), intensity is high.
-    # Neutral lowers intensity.
     intensity = primary_emotion_score
     if primary_emotion == "neutral":
         intensity = 1.0 - primary_emotion_score  # High confidence in neutral = low intensity

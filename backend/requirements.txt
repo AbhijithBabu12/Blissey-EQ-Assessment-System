@@ -6,10 +6,8 @@ django>=6.0
 djangorestframework>=3.17
 django-cors-headers>=4.9
 
-# NLP / AI (Phase 5)
-transformers>=4.40
-torch>=2.2
-sentencepiece>=0.2
+# HuggingFace Inference API (lightweight — no PyTorch needed)
+requests>=2.31
 
 # PDF Reports & Deployment
 reportlab>=4.0
