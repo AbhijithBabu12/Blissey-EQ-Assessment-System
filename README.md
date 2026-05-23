@@ -25,6 +25,22 @@ Blissey is a modern, dynamic web application that evaluates a user's Emotional I
 
 ---
 
+## 📸 Screenshots
+
+| Landing Page | Scenario Loading |
+| :---: | :---: |
+| <img src="images/Loading_page.png" width="400" /> | <img src="images/Scenerio.png" width="400" /> |
+
+| Adaptive Questions | AI Analysis & Feedback |
+| :---: | :---: |
+| <img src="images/Questions.png" width="400" /> | <img src="images/result_1.png" width="400" /> |
+
+| Radar & Bar Charts |
+| :---: |
+| <img src="images/result_2.png" width="400" /> |
+
+---
+
 ## 🏗️ Architecture & File Structure
 
 ### Backend (Django REST Framework)
